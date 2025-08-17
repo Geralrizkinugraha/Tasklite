@@ -20,9 +20,3 @@ Aplikasi ini berjalan sepenuhnya di browser — tidak perlu backend — karena s
 - Export data ke file JSON  
 - Tampilan responsif dan akses dasar (ARIA labels)
 
-## Cara Menjalankan (Lokal)
-1. Clone/download repo.  
-   ```bash
-   git clone https://github.com/geral/tasklite.git
-   cd tasklite
-

@@ -1,27 +1,28 @@
-# TaskLite — To‑Do List App (Vanilla JS, LocalStorage)
+# TaskLite — To-Do List App (Vanilla JS, LocalStorage)
 
-TaskLite adalah aplikasi to‑do list sederhana berbasis web untuk membuat, membaca, mengubah, dan menghapus (CRUD) tugas. Aplikasi ini bekerja sepenuhnya di sisi klien menggunakan **vanilla JavaScript** dan **LocalStorage**.
+TaskLite adalah aplikasi to-do list sederhana dan ringan yang dibuat dengan HTML, CSS, dan JavaScript murni.  
+Aplikasi ini berjalan sepenuhnya di browser — tidak perlu backend — karena semua data tersimpan di LocalStorage.
 
 ## Demo
-Setelah dideploy, masukkan link di sini.
+- **Live Demo:** [https://tasklite-app.netlify.app](https://tasklite-app.netlify.app)  
+- **Short Link:** [https://s.id/8H22O](https://s.id/8H22O)
 
-## Technologies Used
-- HTML, CSS, JavaScript (ES6+)
-- LocalStorage (persistensi data)
-- Static hosting (Netlify/Vercel)
+## Technologies
+- HTML5, CSS3, Vanilla JavaScript (ES6+)  
+- LocalStorage untuk penyimpanan data  
+- Netlify untuk hosting statis
 
 ## Features
-- CRUD tugas (tambah, edit, hapus, tandai selesai)
-- 2 views: List View & Editor (modal)
-- Filter status, filter prioritas, pencarian teks
-- Export data ke JSON
-- Akses mudah (tanpa backend)
+- CRUD tugas: tambah, edit, hapus, tandai selesai  
+- 2 views: List View & Editor (modal)  
+- Filter berdasarkan status & prioritas  
+- Pencarian teks  
+- Export data ke file JSON  
+- Tampilan responsif dan akses dasar (ARIA labels)
 
-## AI Support Explanation (IBM Granite)
-AI hanya digunakan pada fase pengembangan untuk ideasi/scaffolding, refactor, dokumentasi, serta data dummy testing. **Tidak ada AI di aplikasi akhir.**
-
-## Deployment (singkat)
-1) Upload project ke GitHub (repo publik).  
-2) Netlify: Add new site → Import from Git → pilih repo → Build command kosong, publish directory root → Deploy.  
-   atau Vercel: New Project → import repo → Framework = Other (Static) → Deploy.
+## Cara Menjalankan (Lokal)
+1. Clone/download repo.  
+   ```bash
+   git clone https://github.com/yourusername/tasklite.git
+   cd tasklite
 

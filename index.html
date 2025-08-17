@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskLite — To‑Do List</title>
+  <meta name="description" content="TaskLite: simple to‑do app with LocalStorage (vanilla JS)." />
+  <style>
+    :root { --bg:#0b1020; --panel:#10162a; --muted:#9aa4bf; --text:#e6ecff; --acc:#4e8cff; --danger:#ff6b6b; --radius:14px; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--text);}
+    .container{max-width:900px;margin:40px auto;padding:0 16px}
+    header{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:16px}
+    .title{font-size:clamp(22px,3vw,28px);font-weight:700}
+    .actions{display:flex;gap:8px}
+    button, select{border:none;border-radius:10px;padding:10px 14px;background:#1a2342;color:var(--text);cursor:pointer}
+    button:hover{filter:brightness(1.1)} .btn-acc{background:var(--acc)} .btn-danger{background:var(--danger)}
+    .toolbar{display:grid;grid-template-columns:1fr 160px 160px auto;gap:10px;margin:16px 0}
+    .toolbar input[type="search"], .toolbar select{background:#141c33;color:var(--text);border-radius:10px;border:1px solid #223059;padding:10px}
+    .card{background:var(--panel);border:1px solid #202a4a;border-radius:var(--radius);padding:16px}
+    .list{display:grid;gap:10px}
+    .task{display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:center;background:#0f1530;border:1px solid #1d2748;border-radius:12px;padding:12px}
+    .task.done{opacity:.7} .task-title{font-weight:600} .task-meta{font-size:12px;color:var(--muted)}
+    .chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #32406f;color:#cbd6ff}
+    .pri-low{background:#123a2b;border-color:#1e6b52} .pri-med{background:#2a2b12;border-color:#6b651e} .pri-high{background:#3a1212;border-color:#6b1e1e}
+    .empty{color:var(--muted);text-align:center;padding:32px} .footer{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:10px;color:var(--muted)}
+    dialog{border:none;border-radius:16px;padding:0;background:#0f1530;color:var(--text);width:min(540px,92vw)}
+    .modal{padding:18px} .modal header{margin:0 0 10px 0} .field{display:grid;gap:6px;margin:10px 0}
+    input[type="text"], textarea, input[type="date"], select{background:#141c33;color:var(--text);border:1px solid #223059;border-radius:10px;padding:10px;width:100%}
+    textarea{resize:vertical;min-height:90px} .modal .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .modal .actions{justify-content:flex-end} dialog::backdrop{background:rgba(2,6,23,.6)}
+    @media (max-width:720px){.toolbar{grid-template-columns:1fr 1fr 1fr auto}.modal .row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="title">TaskLite</div>
+      <div class="actions">
+        <button id="btn-add" class="btn-acc" aria-haspopup="dialog">+ New Task</button>
+        <button id="btn-clear-done" class="btn-danger" title="Remove all completed tasks">Clear Done</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="toolbar" role="region" aria-label="Filters & Search">
+        <input id="q" type="search" placeholder="Search tasks… (title/desc)" />
+        <select id="f-status" aria-label="Filter status">
+          <option value="all">All status</option>
+          <option value="active">Active</option>
+          <option value="done">Done</option>
+        </select>
+        <select id="f-priority" aria-label="Filter priority">
+          <option value="all">All priority</option>
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+        <button id="btn-export" title="Download tasks as JSON">Export</button>
+      </div>
+
+      <div id="list" class="list" aria-live="polite"></div>
+
+      <div class="footer">
+        <div id="counter">0 tasks</div>
+        <div id="hint">Tip: press <strong>N</strong> to add a task</div>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="dlg">
+    <form method="dialog" class="modal" id="form">
+      <header><div class="title" id="dlg-title">New Task</div></header>
+      <div class="field">
+        <label for="title">Title *</label>
+        <input id="title" name="title" type="text" required maxlength="100" />
+      </div>
+      <div class="field">
+        <label for="desc">Description</label>
+        <textarea id="desc" name="desc" maxlength="500"></textarea>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="due">Due Date</label>
+          <input id="due" name="due" type="date" />
+        </div>
+        <div class="field">
+          <label for="priority">Priority</label>
+          <select id="priority" name="priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+      <input type="hidden" id="id" name="id" />
+      <div class="actions">
+        <button value="cancel">Cancel</button>
+        <button id="btn-save" class="btn-acc" value="default">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    const storeKey = 'tasklite:v1';
+    const load = () => JSON.parse(localStorage.getItem(storeKey) || '[]');
+    const save = d => localStorage.setItem(storeKey, JSON.stringify(d));
+    const uid = () => Math.random().toString(36).slice(2, 10);
+
+    const state = { tasks: load(), filters: { q: '', status: 'all', priority: 'all' } };
+
+    function render(){
+      const list = $('#list'); list.innerHTML='';
+      const f = state.filters;
+      const filtered = state.tasks.filter(t => {
+        const hit = !f.q || (t.title + ' ' + (t.desc||'')).toLowerCase().includes(f.q.toLowerCase());
+        const okStatus = f.status==='all' || (f.status==='done'? t.done : !t.done);
+        const okPri = f.priority==='all' || f.priority===t.priority;
+        return hit && okStatus && okPri;
+      });
+      if(!filtered.length){ list.innerHTML = '<div class="empty">No tasks found. Try adding a new one.</div>'; }
+      else {
+        filtered.forEach(t => list.appendChild(item(t)));
+      }
+      const total = state.tasks.length, done = state.tasks.filter(t=>t.done).length;
+      $('#counter').textContent = `${total} tasks • ${done} done`;
+    }
+
+    function item(t){
+      const el = document.createElement('div');
+      el.className = 'task' + (t.done ? ' done' : '');
+      el.innerHTML = \`
+        <input type="checkbox" \${t.done ? 'checked' : ''} aria-label="mark done" />
+        <div>
+          <div class="task-title">\${escapeHtml(t.title)}</div>
+          <div class="task-meta">
+            \${t.due ? 'Due: ' + t.due + ' • ' : ''}
+            <span class="chip \${priClass(t.priority)}">\${t.priority}</span>
+            \${t.desc ? ' • ' + escapeHtml(t.desc) : ''}
+          </div>
+        </div>
+        <div class="actions">
+          <button title="Edit" data-act="edit">Edit</button>
+          <button title="Delete" data-act="del">Delete</button>
+        </div>\`;
+      el.querySelector('input').addEventListener('change', e => { t.done = e.target.checked; persist(); });
+      el.querySelector('[data-act="edit"]').addEventListener('click', () => openEditor(t));
+      el.querySelector('[data-act="del"]').addEventListener('click', () => {
+        if(confirm('Delete this task?')){
+          state.tasks = state.tasks.filter(x => x.id !== t.id); persist();
+        }
+      });
+      return el;
+    }
+
+    const priClass = p => p==='high' ? 'pri-high' : p==='medium' ? 'pri-med' : 'pri-low';
+    const escapeHtml = s => (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+
+    function persist(){ save(state.tasks); render(); }
+
+    const dlg = document.getElementById('dlg');
+    const form = document.getElementById('form');
+
+    function openEditor(task){
+      form.reset();
+      form.querySelector('#id').value = task?.id || '';
+      form.querySelector('#title').value = task?.title || '';
+      form.querySelector('#desc').value = task?.desc || '';
+      form.querySelector('#due').value = task?.due || '';
+      form.querySelector('#priority').value = task?.priority || 'medium';
+      document.getElementById('dlg-title').textContent = task ? 'Edit Task' : 'New Task';
+      dlg.showModal(); form.querySelector('#title').focus();
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form));
+      const isEdit = !!data.id;
+      const title = (data.title||'').trim(); if(!title){ alert('Title is required'); return; }
+      const task = {
+        id: isEdit ? data.id : uid(),
+        title,
+        desc: (data.desc||'').trim(),
+        due: data.due || '',
+        priority: data.priority || 'medium',
+        done: isEdit ? (state.tasks.find(t => t.id===data.id)?.done || false) : false,
+        createdAt: isEdit ? (state.tasks.find(t => t.id===data.id)?.createdAt || Date.now()) : Date.now()
+      };
+      if(isEdit){ state.tasks = state.tasks.map(t => t.id===task.id ? task : t); }
+      else { state.tasks.unshift(task); }
+      persist(); dlg.close();
+    });
+
+    document.getElementById('btn-add').addEventListener('click', () => openEditor());
+    document.getElementById('btn-clear-done').addEventListener('click', () => {
+      if(!state.tasks.some(t=>t.done)) return;
+      if(confirm('Remove all completed tasks?')){
+        state.tasks = state.tasks.filter(t=>!t.done); persist();
+      }
+    });
+    document.getElementById('q').addEventListener('input', e => { state.filters.q = e.target.value; render(); });
+    document.getElementById('f-status').addEventListener('change', e => { state.filters.status = e.target.value; render(); });
+    document.getElementById('f-priority').addEventListener('change', e => { state.filters.priority = e.target.value; render(); });
+    document.getElementById('btn-export').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(state.tasks, null, 2)], {type:'application/json'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'tasklite-export.json'; a.click(); URL.revokeObjectURL(a.href);
+    });
+
+    if(!state.tasks.length){
+      state.tasks = [
+        { id: uid(), title: 'Learn HTML/CSS basics', desc: 'Watch 2 short tutorials', due: '', priority:'low', done:false, createdAt: Date.now() },
+        { id: uid(), title: 'Build TaskLite MVP', desc: 'Implement CRUD & filters', due: '', priority:'high', done:false, createdAt: Date.now() },
+        { id: uid(), title: 'Deploy to Netlify', desc: '', due: '', priority:'medium', done:false, createdAt: Date.now() }
+      ];
+      persist();
+    } else { render(); }
+  </script>
+</body>
+</html>

@@ -38,7 +38,6 @@ Selama pengembangan, **IBM Granite** digunakan hanya sebagai alat bantu:
 ## Screenshots
 (Screenshots akan ditambahkan setelah deploy)  
 - ![List View](https://s.id/O4RgA)  
-- ![Editor View](./screenshot-editor.png)  
 
 ## License
 MIT

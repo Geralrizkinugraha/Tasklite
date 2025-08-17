@@ -23,6 +23,6 @@ Aplikasi ini berjalan sepenuhnya di browser — tidak perlu backend — karena s
 ## Cara Menjalankan (Lokal)
 1. Clone/download repo.  
    ```bash
-   git clone https://github.com/yourusername/tasklite.git
+   git clone https://github.com/geral/tasklite.git
    cd tasklite
 
